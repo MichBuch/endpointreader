@@ -1,7 +1,22 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
+const { startProxy } = require('./proxy')
+const { readStore, writeStore } = require('./store')
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+
+let proxyServer = null
+
+// ── IPC handlers ──────────────────────────────────────────────────────────────
+ipcMain.handle('store:load', () => readStore())
+ipcMain.handle('store:save', (_, data) => { writeStore(data); return true })
+ipcMain.handle('dialog:openFile', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [{ name: 'Certificates & Keys', extensions: ['pem','crt','cer','key','p12','pfx'] }]
+  })
+  return canceled ? null : filePaths[0]
+})
 
 function createWindow() {
   const win = new BrowserWindow({

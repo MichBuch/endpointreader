@@ -1,6 +1,7 @@
 import React from 'react'
 import { Plus, Zap, Globe } from 'lucide-react'
-import { useEndpoints } from '../context/EndpointContext'
+import { useOrg } from '../context/OrgContext'
+import OrgSwitcher from './OrgSwitcher'
 
 const METHOD_COLORS = {
   GET:    'text-green-400 bg-green-500/10 border-green-500/30',
@@ -11,39 +12,43 @@ const METHOD_COLORS = {
 }
 
 export default function Sidebar() {
-  const { endpoints, activeId, setActiveId, addEndpoint, setResult } = useEndpoints()
+  const { endpoints, activeEpId, setActiveEpId, addEndpoint, setResult, activeOrg } = useOrg()
 
-  function select(id) {
-    setActiveId(id)
-    setResult(null)
-  }
+  function select(id) { setActiveEpId(id); setResult(null) }
 
   return (
     <aside className="w-64 flex-shrink-0 bg-slate-900 border-r border-cyan-700/30 flex flex-col h-full">
-      {/* Header */}
+      {/* App header */}
       <div className="px-4 py-4 border-b border-cyan-700/30 flex items-center gap-2">
         <Zap className="w-5 h-5 text-cyan-400" />
         <span className="text-cyan-100 font-semibold tracking-wide">Endpoint Manager</span>
       </div>
 
-      {/* Add button */}
+      {/* Org switcher */}
+      <OrgSwitcher />
+
+      {/* Add endpoint button */}
       <div className="px-3 py-3">
         <button
           onClick={addEndpoint}
-          className="w-full flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-slate-900 font-medium px-3 py-2 rounded-lg transition-all duration-200 shadow-neon-btn"
+          disabled={!activeOrg}
+          className="w-full flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-900 font-medium px-3 py-2 rounded-lg transition-all duration-200 shadow-neon-btn text-sm"
         >
           <Plus className="w-4 h-4" />
           Add Endpoint
         </button>
       </div>
 
-      {/* List */}
+      {/* Endpoint list */}
       <nav className="flex-1 overflow-y-auto px-2 pb-4 flex flex-col gap-1">
-        {endpoints.length === 0 && (
-          <p className="text-cyan-400/50 text-xs text-center mt-8 px-4">No endpoints yet. Add one to get started.</p>
+        {!activeOrg && (
+          <p className="text-cyan-400/40 text-xs text-center mt-8 px-4">Create or select an organisation first.</p>
+        )}
+        {activeOrg && endpoints.length === 0 && (
+          <p className="text-cyan-400/40 text-xs text-center mt-8 px-4">No endpoints yet.</p>
         )}
         {endpoints.map(ep => {
-          const isActive = ep.id === activeId
+          const isActive = ep.id === activeEpId
           return (
             <button
               key={ep.id}

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Download, CheckCircle, XCircle, Loader } from 'lucide-react'
-import { useEndpoints } from '../context/EndpointContext'
+import { useOrg } from '../context/OrgContext'
 
 // ── JSON flattening ───────────────────────────────────────────────────────────
 function flatten(obj, prefix = '', out = {}) {
@@ -63,7 +63,8 @@ function Cell({ value }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function Spreadsheet() {
-  const { result, loading, active } = useEndpoints()
+  const { result, loading, activeEp } = useOrg()
+  const [view, setView] = React.useState('table') // 'table' | 'raw'
 
   if (loading) {
     return (
@@ -76,7 +77,7 @@ export default function Spreadsheet() {
     )
   }
 
-  if (!active) {
+  if (!activeEp) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center text-cyan-400/40">
@@ -104,7 +105,7 @@ export default function Spreadsheet() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden p-4 gap-3">
       {/* Toolbar */}
-      <div className="flex items-center justify-between flex-shrink-0">
+      <div className="flex items-center justify-between flex-shrink-0 flex-wrap gap-2">
         <div className="flex items-center gap-3">
           {result.ok
             ? <CheckCircle className="w-4 h-4 text-green-400" />
@@ -116,40 +117,66 @@ export default function Spreadsheet() {
           </span>
           <span className="text-xs text-cyan-400/50">{rows.length} row{rows.length !== 1 ? 's' : ''}</span>
         </div>
-        <button
-          onClick={() => exportCSV(rows, cols)}
-          className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-cyan-300 border border-cyan-700/50 hover:border-cyan-500 px-3 py-1.5 rounded-lg text-xs transition-all duration-200"
-        >
-          <Download className="w-3.5 h-3.5" />
-          Export CSV
-        </button>
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex bg-slate-800 border border-cyan-700/30 rounded-lg overflow-hidden text-xs">
+            {['table','raw'].map(v => (
+              <button key={v} onClick={() => setView(v)}
+                className={`px-3 py-1.5 font-medium transition-colors capitalize
+                  ${view === v ? 'bg-cyan-600 text-slate-900' : 'text-cyan-400 hover:bg-slate-700'}`}>
+                {v}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => exportCSV(rows, cols)}
+            className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-cyan-300 border border-cyan-700/50 hover:border-cyan-500 px-3 py-1.5 rounded-lg text-xs transition-all duration-200"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export CSV
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto rounded-xl border border-cyan-700/30 shadow-neon-card">
-        <table className="w-full text-sm border-collapse">
-          <thead className="sticky top-0 z-10">
-            <tr>
-              {cols.map(c => (
-                <th key={c} className="bg-slate-800 text-cyan-400 font-semibold text-left px-4 py-2.5 border-b border-cyan-700/30 whitespace-nowrap text-xs uppercase tracking-wider font-mono">
-                  {humanise(c)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr key={i} className="border-b border-cyan-700/10 hover:bg-slate-800/50 transition-colors">
+      {/* Raw view */}
+      {view === 'raw' && (
+        <div className="flex-1 overflow-auto rounded-xl border border-cyan-700/30 shadow-neon-card bg-slate-900">
+          <pre className="p-4 text-xs font-mono text-cyan-300 whitespace-pre-wrap break-words">
+            {typeof result.raw === 'string'
+              ? (() => { try { return JSON.stringify(JSON.parse(result.raw), null, 2) } catch { return result.raw } })()
+              : JSON.stringify(result.data, null, 2)
+            }
+          </pre>
+        </div>
+      )}
+
+      {/* Table view */}
+      {view === 'table' && (
+        <div className="flex-1 overflow-auto rounded-xl border border-cyan-700/30 shadow-neon-card">
+          <table className="w-full text-sm border-collapse">
+            <thead className="sticky top-0 z-10">
+              <tr>
                 {cols.map(c => (
-                  <td key={c} className="px-4 py-2.5 align-top max-w-xs">
-                    <Cell value={row[c]} />
-                  </td>
+                  <th key={c} className="bg-slate-800 text-cyan-400 font-semibold text-left px-4 py-2.5 border-b border-cyan-700/30 whitespace-nowrap text-xs uppercase tracking-wider font-mono">
+                    {humanise(c)}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i} className="border-b border-cyan-700/10 hover:bg-slate-800/50 transition-colors">
+                  {cols.map(c => (
+                    <td key={c} className="px-4 py-2.5 align-top max-w-xs">
+                      <Cell value={row[c]} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
