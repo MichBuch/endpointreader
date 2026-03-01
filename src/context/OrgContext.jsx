@@ -21,6 +21,68 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 
 const OrgContext = createContext(null)
 
+const SEED_STORE = {
+  activeOrgId: 'org-demo',
+  orgs: [
+    {
+      id: 'org-demo',
+      name: 'Demo & Public APIs',
+      colour: 'cyan',
+      auth: { type: 'none' },
+      endpoints: [
+        { id: 'ep-1', name: 'JSONPlaceholder – Posts',    method: 'GET',  url: 'https://jsonplaceholder.typicode.com/posts',                              headers: '', body: '' },
+        { id: 'ep-2', name: 'JSONPlaceholder – Users',    method: 'GET',  url: 'https://jsonplaceholder.typicode.com/users',                              headers: '', body: '' },
+        { id: 'ep-3', name: 'JSONPlaceholder – Todos',    method: 'GET',  url: 'https://jsonplaceholder.typicode.com/todos',                              headers: '', body: '' },
+        { id: 'ep-4', name: 'JSONPlaceholder – Create Post', method: 'POST', url: 'https://jsonplaceholder.typicode.com/posts',                           headers: '{"Content-Type":"application/json"}', body: '{\n  "title": "Hello World",\n  "body": "Test post body",\n  "userId": 1\n}' },
+        { id: 'ep-5', name: 'REST Countries – All',       method: 'GET',  url: 'https://restcountries.com/v3.1/all?fields=name,capital,population,region', headers: '', body: '' },
+        { id: 'ep-6', name: 'Open Library – Search JS',   method: 'GET',  url: 'https://openlibrary.org/search.json?q=javascript&limit=20',               headers: '', body: '' },
+        { id: 'ep-7', name: 'Cat Facts',                  method: 'GET',  url: 'https://catfact.ninja/facts?limit=20',                                    headers: '', body: '' },
+        { id: 'ep-8', name: 'Public APIs List',           method: 'GET',  url: 'https://api.publicapis.org/entries',                                      headers: '', body: '' },
+      ]
+    },
+    {
+      id: 'org-github',
+      name: 'GitHub',
+      colour: 'violet',
+      auth: { type: 'bearer', token: '' },
+      endpoints: [
+        { id: 'gh-1', name: 'My Repos',         method: 'GET', url: 'https://api.github.com/user/repos?per_page=50&sort=updated', headers: '{"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}', body: '' },
+        { id: 'gh-2', name: 'My Profile',        method: 'GET', url: 'https://api.github.com/user',                               headers: '{"Accept":"application/vnd.github+json"}', body: '' },
+        { id: 'gh-3', name: 'Search Repos',      method: 'GET', url: 'https://api.github.com/search/repositories?q=react&sort=stars&per_page=20', headers: '{"Accept":"application/vnd.github+json"}', body: '' },
+      ]
+    },
+    {
+      id: 'org-vercel',
+      name: 'Vercel',
+      colour: 'sky',
+      auth: { type: 'bearer', token: '' },
+      endpoints: [
+        { id: 'vc-1', name: 'List Projects',     method: 'GET', url: 'https://api.vercel.com/v9/projects',      headers: '', body: '' },
+        { id: 'vc-2', name: 'List Deployments',  method: 'GET', url: 'https://api.vercel.com/v6/deployments',   headers: '', body: '' },
+        { id: 'vc-3', name: 'List Domains',      method: 'GET', url: 'https://api.vercel.com/v5/domains',       headers: '', body: '' },
+      ]
+    },
+    {
+      id: 'org-google',
+      name: 'Google',
+      colour: 'amber',
+      auth: { type: 'bearer', token: '' },
+      endpoints: [
+        { id: 'gg-1', name: 'User Info',         method: 'GET', url: 'https://www.googleapis.com/oauth2/v3/userinfo',                    headers: '', body: '' },
+        { id: 'gg-2', name: 'Drive – List Files', method: 'GET', url: 'https://www.googleapis.com/drive/v3/files?pageSize=20',           headers: '', body: '' },
+        { id: 'gg-3', name: 'Gmail – Messages',  method: 'GET', url: 'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20', headers: '', body: '' },
+      ]
+    },
+    {
+      id: 'org-work',
+      name: 'Work / Corporate',
+      colour: 'emerald',
+      auth: { type: 'bearer', token: '' },
+      endpoints: []
+    },
+  ]
+}
+
 const IS_ELECTRON = !!window.electronAPI?.loadStore
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
@@ -29,9 +91,16 @@ const DEFAULT_AUTH = { type: 'none' }
 
 // ── Persistence helpers ───────────────────────────────────────────────────────
 async function persistLoad() {
-  if (IS_ELECTRON) return window.electronAPI.loadStore()
-  try { return JSON.parse(sessionStorage.getItem('ep_orgs')) || { orgs: [], activeOrgId: null } }
-  catch { return { orgs: [], activeOrgId: null } }
+  if (IS_ELECTRON) {
+    const data = await window.electronAPI.loadStore()
+    if (data?.orgs?.length) return data
+    return SEED_STORE
+  }
+  try {
+    const stored = JSON.parse(sessionStorage.getItem('ep_orgs'))
+    if (stored?.orgs?.length) return stored
+    return SEED_STORE
+  } catch { return SEED_STORE }
 }
 
 async function persistSave(data) {
