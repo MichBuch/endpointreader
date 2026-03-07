@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Endpoint Manager</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar: endpoint list -->
+    <aside class="sidebar">
+      <h2>Endpoints</h2>
+      <button id="add-btn">+ Add Endpoint</button>
+      <ul id="endpoint-list"></ul>
+    </aside>
+
+    <!-- Main: editor + results -->
+    <main class="main">
+      <!-- Endpoint editor -->
+      <section class="editor" id="editor" style="display:none">
+        <div class="editor-row">
+          <input id="ep-name" type="text" placeholder="Name" />
+          <select id="ep-method">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>PATCH</option>
+            <option>DELETE</option>
+          </select>
+          <input id="ep-url" type="text" placeholder="https://api.example.com/data" />
+          <button id="call-btn">Call</button>
+          <button id="save-btn">Save</button>
+          <button id="delete-btn" class="danger">Delete</button>
+        </div>
+        <div class="editor-row">
+          <textarea id="ep-headers" placeholder='Headers (JSON) e.g. {"Authorization":"Bearer token"}'></textarea>
+          <textarea id="ep-body" placeholder='Body (JSON) — for POST/PUT/PATCH'></textarea>
+        </div>
+      </section>
+
+      <!-- Spreadsheet results -->
+      <section class="results" id="results">
+        <div id="results-placeholder" class="placeholder">Select or add an endpoint to get started.</div>
+        <div id="spreadsheet-wrap" style="display:none">
+          <div class="results-toolbar">
+            <span id="results-label"></span>
+            <button id="export-btn">Export CSV</button>
+          </div>
+          <div id="spreadsheet"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
