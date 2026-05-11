@@ -84,6 +84,7 @@ const SEED_STORE = {
 }
 
 const IS_ELECTRON = !!window.electronAPI?.loadStore
+const FALLBACK_PORT = 57321
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2) }
 
@@ -116,14 +117,20 @@ export function OrgProvider({ children }) {
   const [result, setResult]           = useState(null)
   const [loading, setLoading]         = useState(false)
   const [ready, setReady]             = useState(false)
+  const proxyPortRef                  = React.useRef(FALLBACK_PORT)
 
-  // Load on mount
   useEffect(() => {
-    persistLoad().then(data => {
+    async function init() {
+      if (IS_ELECTRON && window.electronAPI?.getProxyPort) {
+        const port = await window.electronAPI.getProxyPort()
+        if (port) proxyPortRef.current = port
+      }
+      const data = await persistLoad()
       setOrgs(data.orgs || [])
       setActiveOrgId(data.activeOrgId || null)
       setReady(true)
-    })
+    }
+    init()
   }, [])
 
   // Save whenever orgs or activeOrgId changes (after initial load)
@@ -198,7 +205,6 @@ export function OrgProvider({ children }) {
     setLoading(true)
     setResult(null)
 
-    // Merge org-level auth with any endpoint-level override
     const auth = activeOrg?.auth || DEFAULT_AUTH
 
     let headers = {}
@@ -213,13 +219,14 @@ export function OrgProvider({ children }) {
       catch { setLoading(false); return { error: 'Invalid body JSON' } }
     }
 
-    const useProxy = await isProxyAvailable()
+    const port = proxyPortRef.current
+    const useProxy = await isProxyAvailable(port)
 
     try {
       let status, statusText, ok, text
 
       if (useProxy) {
-        const proxyRes = await fetch('http://127.0.0.1:57321/proxy', {
+        const proxyRes = await fetch(`http://127.0.0.1:${port}/proxy`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: ep.url, method: ep.method, headers, body, auth })
@@ -263,9 +270,9 @@ export function OrgProvider({ children }) {
 export const useOrg = () => useContext(OrgContext)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-async function isProxyAvailable() {
+async function isProxyAvailable(port = FALLBACK_PORT) {
   try {
-    const res = await fetch('http://127.0.0.1:57321/health', { signal: AbortSignal.timeout(500) })
+    const res = await fetch(`http://127.0.0.1:${port}/health`, { signal: AbortSignal.timeout(500) })
     return res.ok
   } catch { return false }
 }

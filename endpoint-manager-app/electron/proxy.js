@@ -14,7 +14,6 @@ const fs      = require('fs')
 
 const PREFERRED_PORT = 57321
 
-// Find next free port starting from preferred
 function findFreePort(start) {
   return new Promise((resolve, reject) => {
     const net = require('net')
@@ -26,6 +25,12 @@ function findFreePort(start) {
       server.close(() => resolve(port))
     })
   })
+}
+
+// Allowed renderer origins: Vite dev server + packaged file:// (origin is 'null')
+function isAllowedOrigin(origin) {
+  if (!origin || origin === 'null') return true
+  return /^http:\/\/localhost(:\d+)?$/.test(origin)
 }
 
 function buildAgent(auth) {
@@ -83,13 +88,16 @@ function buildHeaders(baseHeaders, auth) {
   return headers
 }
 
-function startProxy() {
+async function startProxy() {
+  const port = await findFreePort(PREFERRED_PORT)
   const app = express()
   app.use(express.json({ limit: '10mb' }))
 
-  // CORS — only allow requests from our own renderer (localhost)
   app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173')
+    const origin = req.headers.origin
+    if (isAllowedOrigin(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin || '*')
+    }
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
     if (req.method === 'OPTIONS') return res.sendStatus(204)
@@ -135,14 +143,15 @@ function startProxy() {
     }
   })
 
-  // Health check
   app.get('/health', (_, res) => res.json({ ok: true }))
 
-  const server = app.listen(PROXY_PORT, '127.0.0.1', () => {
-    console.log(`[proxy] listening on http://127.0.0.1:${PROXY_PORT}`)
+  return new Promise((resolve, reject) => {
+    const server = app.listen(port, '127.0.0.1', () => {
+      console.log(`[proxy] listening on http://127.0.0.1:${port}`)
+      resolve({ server, port })
+    })
+    server.on('error', reject)
   })
-
-  return server
 }
 
-module.exports = { startProxy, PROXY_PORT }
+module.exports = { startProxy }

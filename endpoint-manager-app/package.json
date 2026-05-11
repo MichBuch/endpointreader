@@ -10,8 +10,8 @@
     "build:win": "vite build && electron-builder --win",
     "build:mac": "vite build && electron-builder --mac",
     "build:linux": "vite build && electron-builder --linux",
-    "electron": "set NODE_ENV=development && electron .",
-    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && set NODE_ENV=development && electron .\""
+    "electron": "cross-env NODE_ENV=development electron .",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development node --no-deprecation node_modules/.bin/electron .\""
   },
   "dependencies": {
     "electron-store": "^11.0.2",
@@ -27,6 +27,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.17",
     "concurrently": "^8.2.2",
+    "cross-env": "^10.1.0",
     "electron": "^28.2.0",
     "electron-builder": "^26.8.1",
     "postcss": "^8.4.35",
@@ -51,16 +52,38 @@
       "type": "commonjs"
     },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "assets/icon.ico"
     },
     "mac": {
-      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
       "icon": "assets/icon.icns",
       "category": "public.app-category.developer-tools"
     },
     "linux": {
-      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "assets/icon.png",
       "category": "Development"
     },

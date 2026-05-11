@@ -5,11 +5,12 @@ const { readStore, writeStore } = require('./store')
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
-let proxyServer = null
+let proxyHandle = null  // { server, port }
 
 // ── IPC handlers ──────────────────────────────────────────────────────────────
 ipcMain.handle('store:load', () => readStore())
 ipcMain.handle('store:save', (_, data) => { writeStore(data); return true })
+ipcMain.handle('proxy:port', () => proxyHandle?.port ?? null)
 ipcMain.handle('dialog:openFile', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ['openFile'],
@@ -40,12 +41,12 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
-  proxyServer = startProxy()
+app.whenReady().then(async () => {
+  proxyHandle = await startProxy()
   createWindow()
 })
 app.on('window-all-closed', () => {
-  if (proxyServer) proxyServer.close()
+  if (proxyHandle) proxyHandle.server.close()
   if (process.platform !== 'darwin') app.quit()
 })
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
